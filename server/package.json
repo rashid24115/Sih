@@ -1,0 +1,14 @@
+{
+  "name": "urjagrid-server",
+  "version": "1.0.0",
+  "description": "Backend API for URJAGRID P2P Microgrid Trading Platform",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
