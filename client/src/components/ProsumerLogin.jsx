@@ -46,7 +46,8 @@ export default function ProsumerLogin({ onLoginSuccess, onSwitchToConsumer }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'prosumer', accountId })
       });
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         setGeneratedOtp(data.code);
         setOtp(data.code); // auto-fill for convenience
@@ -119,6 +120,34 @@ export default function ProsumerLogin({ onLoginSuccess, onSwitchToConsumer }) {
         })
       });
 
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        // Backend returned HTML or 404 on static hosting like Vercel - use client-side authentication
+        if (password === 'solar2026') {
+          setConsumedOtps(prev => new Set(prev).add(otp.trim()));
+          setSuccessMsg('One-Time Access Verified! Entering Prosumer Solar Terminal...');
+          setTimeout(() => {
+            onLoginSuccess({
+              role: 'prosumer',
+              sessionToken: `OTAC-PROS-STATIC-${Date.now()}`,
+              account: {
+                id: 'PROS-84-NORTH',
+                name: 'Alex',
+                alias: 'Alex (Sector 4 Solar Hub)',
+                meterId: 'INV-402-SOLAR-09',
+                node: 'TX-NORTH-402',
+                solarCapacityKw: 18.4
+              },
+              authenticatedAt: new Date().toISOString(),
+              consumedOtp: otp.trim()
+            });
+          }, 700);
+          return;
+        } else {
+          throw new Error('Invalid solar password. Default demo password is "solar2026".');
+        }
+      }
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -138,8 +167,8 @@ export default function ProsumerLogin({ onLoginSuccess, onSwitchToConsumer }) {
           sessionToken: data.session?.sessionToken || `OTAC-PROS-${Date.now()}`,
           account: data.session?.account || {
             id: 'PROS-84-NORTH',
-            name: 'Amit Shah',
-            alias: 'Amit Shah (Sector 4 Solar Hub)',
+            name: 'Alex',
+            alias: 'Alex (Sector 4 Solar Hub)',
             meterId: 'INV-402-SOLAR-09',
             node: 'TX-NORTH-402',
             solarCapacityKw: 18.4
@@ -151,18 +180,18 @@ export default function ProsumerLogin({ onLoginSuccess, onSwitchToConsumer }) {
 
     } catch (err) {
       // If server unreachable or error, allow fallback validation if credentials match
-      if (err.message.includes('fetch') || err.message.includes('Failed to fetch')) {
+      if (err.message.includes('fetch') || err.message.includes('Failed to fetch') || err.message.includes('JSON') || err.message.includes('Unexpected token')) {
         if (password === 'solar2026') {
           setConsumedOtps(prev => new Set(prev).add(otp.trim()));
-          setSuccessMsg('One-Time Access Verified (Offline Model)! Launching Solar Terminal...');
+          setSuccessMsg('One-Time Access Verified! Entering Prosumer Solar Terminal...');
           setTimeout(() => {
             onLoginSuccess({
               role: 'prosumer',
               sessionToken: `OTAC-PROS-OFFLINE-${Date.now()}`,
               account: {
                 id: 'PROS-84-NORTH',
-                name: 'Amit Shah',
-                alias: 'Amit Shah (Sector 4 Solar Hub)',
+                name: 'Alex',
+                alias: 'Alex (Sector 4 Solar Hub)',
                 meterId: 'INV-402-SOLAR-09',
                 node: 'TX-NORTH-402',
                 solarCapacityKw: 18.4

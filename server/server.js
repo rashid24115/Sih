@@ -719,6 +719,10 @@ app.post('/api/reset', (req, res) => {
   res.json({ message: "Demo state reset successfully" });
 });
 
-app.listen(PORT, () => {
-  console.log(`[URJAGRID] Backend server running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`[URJAGRID] Backend server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

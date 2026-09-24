@@ -2,11 +2,16 @@
   "name": "urjagrid-fullstack",
   "version": "1.0.0",
   "description": "URJAGRID P2P Microgrid Full Stack Energy Trading Platform",
+  "type": "module",
   "scripts": {
     "start": "node dev.js",
     "dev": "node dev.js",
     "server": "node server/server.js",
     "client": "npm --prefix client run dev",
-    "build": "npm --prefix client run build"
+    "build": "npm --prefix client install && npm --prefix client run build"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
   }
 }

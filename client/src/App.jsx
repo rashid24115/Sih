@@ -389,7 +389,8 @@ export default function App() {
         fetch(`${API_BASE}/transformers`)
       ]);
 
-      if (resPros.ok && resCons.ok && resOff.ok && resTx.ok && resTrans.ok) {
+      const isJson = (resPros.headers.get('content-type') || '').includes('application/json');
+      if (resPros.ok && resCons.ok && resOff.ok && resTx.ok && resTrans.ok && isJson) {
         setProsumerData(await resPros.json());
         setConsumerData(await resCons.json());
         setGridOffers(await resOff.json());
@@ -402,6 +403,8 @@ export default function App() {
         }
         setTransformers(await resTrans.json());
         setIsBackendConnected(true);
+      } else {
+        setIsBackendConnected(false);
       }
     } catch (err) {
       console.warn('Backend server not reachable or starting up. Using local high-fidelity state.', err);
