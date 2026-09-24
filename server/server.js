@@ -302,7 +302,174 @@ const getFormattedTime = () => {
   return `Today, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+// ==================== AUTHENTICATION & ONE-TIME ACCESS ====================
+const AUTH_ACCOUNTS = {
+  prosumer: {
+    id: "PROS-84-NORTH",
+    name: "Amit Shah",
+    alias: "Amit Shah (Sector 4 Solar Hub)",
+    role: "prosumer",
+    meterId: "INV-402-SOLAR-09",
+    node: "TX-NORTH-402",
+    solarCapacityKw: 18.4,
+    password: "solar2026",
+    details: "Rooftop PV System • 3-Phase Smart Inverter"
+  },
+  consumer: {
+    id: "CONS-9912-BAKERY",
+    name: "Gupta Bakery",
+    alias: "Gupta Bakery (Commercial)",
+    role: "consumer",
+    meterId: "SM-CONS-9912",
+    node: "TX-NORTH-402",
+    sanctionedLimitKw: 10.0,
+    password: "grid2026",
+    details: "Commercial LT Connection • Sanctioned Headroom 10 kWh/day"
+  }
+};
+
+// One-time access token store (single-use only)
+let oneTimeTokens = [
+  { code: "840219", role: "prosumer", createdAt: Date.now(), expiresAt: Date.now() + 86400000, used: false, consumedAt: null },
+  { code: "619420", role: "consumer", createdAt: Date.now(), expiresAt: Date.now() + 86400000, used: false, consumedAt: null }
+];
+let activeSessions = new Map();
+
 // ==================== REST ROUTES ====================
+
+// Auth 1: Request One-Time Access Passcode (OTAC)
+app.post('/api/auth/request-otp', (req, res) => {
+  const { role, accountId } = req.body;
+  if (!role || !['prosumer', 'consumer'].includes(role)) {
+    return res.status(400).json({ error: "Invalid role specified for One-Time Access" });
+  }
+
+  // Generate 6-digit dynamic passcode
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const tokenRecord = {
+    code,
+    role,
+    accountId: accountId || (role === 'prosumer' ? AUTH_ACCOUNTS.prosumer.id : AUTH_ACCOUNTS.consumer.id),
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 5 * 60 * 1000, // 5 min
+    used: false,
+    consumedAt: null
+  };
+
+  oneTimeTokens.push(tokenRecord);
+
+  res.json({
+    success: true,
+    code,
+    role,
+    validForSec: 300,
+    message: "Dynamic One-Time Access Passcode (OTAC) generated. This code is valid for one-time access only."
+  });
+});
+
+// Auth 2: Login with One-Time Access Verification
+app.post('/api/auth/login', (req, res) => {
+  const { role, accountId, password, otp } = req.body;
+
+  if (!role || !['prosumer', 'consumer'].includes(role)) {
+    return res.status(400).json({ error: "Invalid role specified" });
+  }
+
+  const expectedAccount = AUTH_ACCOUNTS[role];
+  if (accountId && accountId.trim() !== expectedAccount.id) {
+    return res.status(401).json({ error: `Account ID mismatch for ${role} portal. Expected: ${expectedAccount.id}` });
+  }
+
+  if (password && password !== expectedAccount.password) {
+    return res.status(401).json({ error: "Invalid credentials / password for smart grid gateway" });
+  }
+
+  if (!otp) {
+    return res.status(400).json({ error: "One-Time Access Passcode (OTAC) is mandatory." });
+  }
+
+  const trimmedOtp = otp.toString().trim();
+  const tokenRecord = oneTimeTokens.find(t => t.code === trimmedOtp && t.role === role);
+
+  if (!tokenRecord) {
+    return res.status(401).json({ 
+      error: "INVALID_TOKEN", 
+      message: "Invalid One-Time Access Code for this role. Please request a new code." 
+    });
+  }
+
+  if (tokenRecord.used) {
+    return res.status(403).json({ 
+      error: "CONSUMED_TOKEN", 
+      message: `Security Lock: This One-Time Passcode (${trimmedOtp}) was already consumed at ${tokenRecord.consumedAt}. One-Time Access policy strictly forbids re-use. Please request a fresh passcode.` 
+    });
+  }
+
+  if (Date.now() > tokenRecord.expiresAt) {
+    return res.status(401).json({ 
+      error: "EXPIRED_TOKEN", 
+      message: "One-Time Access Code has expired. Please request a fresh passcode." 
+    });
+  }
+
+  // Burn / Consume the token permanently
+  tokenRecord.used = true;
+  tokenRecord.consumedAt = new Date().toLocaleTimeString();
+
+  // Create isolated single-role session
+  const sessionToken = `OTAC-SESS-${role.toUpperCase()}-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  const sessionData = {
+    sessionToken,
+    role,
+    account: {
+      id: expectedAccount.id,
+      name: expectedAccount.name,
+      alias: expectedAccount.alias,
+      meterId: expectedAccount.meterId,
+      node: expectedAccount.node,
+      details: expectedAccount.details
+    },
+    consumedOtp: trimmedOtp,
+    authenticatedAt: new Date().toISOString(),
+    lockedRole: role
+  };
+
+  activeSessions.set(sessionToken, sessionData);
+
+  res.json({
+    success: true,
+    session: sessionData,
+    message: `Authentication successful. One-time access verified. Session strictly locked to ${role.toUpperCase()} terminal.`
+  });
+});
+
+// Auth 3: Session Verification
+app.get('/api/auth/session', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ active: false, error: "No session token provided" });
+  }
+
+  const token = authHeader.replace('Bearer ', '').trim();
+  const session = activeSessions.get(token);
+
+  if (!session) {
+    return res.status(401).json({ active: false, error: "Session invalid or expired" });
+  }
+
+  res.json({ active: true, session });
+});
+
+// Auth 4: Logout / Destroy Session
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.replace('Bearer ', '').trim();
+    activeSessions.delete(token);
+  }
+  res.json({ success: true, message: "One-time session securely terminated." });
+});
+
 
 // 1. Health & Status
 app.get('/api/health', (req, res) => {

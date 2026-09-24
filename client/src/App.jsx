@@ -4,8 +4,9 @@ import {
   BarChart3, RefreshCw, Award, ChevronRight, MapPin, Sparkles, TrendingUp, Cpu, Compass,
   FileText, LayoutDashboard, ShoppingBag, Search, Check, XCircle, CloudSun,
   Thermometer, Wind, AlertCircle, CheckCircle, ShieldAlert, Type, Eye, RotateCcw,
-  SlidersHorizontal, Layers, Server, Network, Maximize2, X
+  SlidersHorizontal, Layers, Server, Network, Maximize2, X, LogOut, Lock, Key
 } from 'lucide-react';
+import AuthGateway from './components/AuthGateway';
 
 const API_BASE = '/api';
 
@@ -217,9 +218,62 @@ const AI_HOURLY_FORECAST = [
 ];
 
 export default function App() {
-  // Navigation & Role States
-  const [role, setRole] = useState('consumer'); // 'prosumer', 'consumer', 'topology'
+  // One-Time Access Authentication Session State
+  const [authSession, setAuthSession] = useState(() => {
+    try {
+      const saved = localStorage.getItem('urjagrid_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Navigation & Role States (Strictly locked to session role when authenticated)
+  const [role, setRole] = useState(() => {
+    try {
+      const saved = localStorage.getItem('urjagrid_session');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.role) return parsed.role;
+      }
+    } catch {}
+    return 'consumer';
+  });
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'offers', 'find', 'transactions', 'topology'
+
+  const handleLoginSuccess = (session) => {
+    setAuthSession(session);
+    setRole(session.role);
+    setActiveTab('overview');
+    try {
+      localStorage.setItem('urjagrid_session', JSON.stringify(session));
+    } catch (e) {
+      console.error("Failed to persist session", e);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      if (authSession?.sessionToken) {
+        await fetch(`${API_BASE}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authSession.sessionToken}`
+          }
+        });
+      }
+    } catch (e) {
+      console.warn("Logout notification error:", e);
+    }
+    setAuthSession(null);
+    try {
+      localStorage.removeItem('urjagrid_session');
+    } catch (e) {}
+    if (typeof window !== 'undefined') {
+      window.location.hash = '';
+    }
+  };
+
 
   // Application Data States
   const [prosumerData, setProsumerData] = useState(INITIAL_PRODUCER_DATA);
@@ -369,10 +423,15 @@ export default function App() {
   }, [role]);
 
   const handleNextDemoStep = () => {
-    const nextStep = (demoStep + 1) % demoSteps.length;
+    // Traverse steps belonging strictly to current authenticated role
+    let nextStep = (demoStep + 1) % demoSteps.length;
+    let attempts = 0;
+    while (demoSteps[nextStep].role !== role && attempts < demoSteps.length) {
+      nextStep = (nextStep + 1) % demoSteps.length;
+      attempts++;
+    }
     setDemoStep(nextStep);
     const config = demoSteps[nextStep];
-    setRole(config.role);
     setActiveTab(config.tab);
 
     if (nextStep === 2) {
@@ -578,6 +637,11 @@ export default function App() {
     return true;
   });
 
+  // Enforce Separate Login Gateway if no one-time authenticated session
+  if (!authSession) {
+    return <AuthGateway onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
       
@@ -668,30 +732,43 @@ export default function App() {
               <span className="hidden lg:inline">{isHighContrast ? 'High Contrast On' : 'High Contrast'}</span>
             </button>
 
-            {/* Role Switcher */}
-            <div className="bg-slate-100 p-1 rounded-xl border border-slate-300 flex items-center gap-1 shadow-xs">
-              <button
-                onClick={() => { setRole('prosumer'); setActiveTab('overview'); }}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-bold transition-all ${
+            {/* Role-Locked One-Time Session Badge (Replaces open role switcher) */}
+            <div className="bg-slate-100 p-1 rounded-xl border border-slate-300 flex items-center gap-1.5 shadow-xs">
+              <div 
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black tracking-tight ${
                   role === 'prosumer'
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+                    ? 'bg-amber-500 text-white shadow-sm'
+                    : 'bg-emerald-600 text-white shadow-sm'
                 }`}
+                title="Your session is strictly locked to this role via One-Time Access Verification"
               >
-                <Sun className="w-4 h-4 stroke-[2.5]" />
-                <span>Prosumer</span>
-              </button>
-              
+                {role === 'prosumer' ? (
+                  <Sun className="w-3.5 h-3.5 stroke-[3]" />
+                ) : (
+                  <ShoppingBag className="w-3.5 h-3.5 stroke-[3]" />
+                )}
+                <span className="capitalize">{role} Portal</span>
+                <span className="opacity-80 font-normal hidden lg:inline">
+                  • {authSession?.account?.name || (role === 'prosumer' ? 'Amit Shah' : 'Gupta Bakery')}
+                </span>
+              </div>
+
+              <div 
+                className="hidden sm:flex items-center gap-1 px-2 py-1 text-[11px] font-mono font-bold text-slate-600 bg-white rounded-md border border-slate-200" 
+                title="Session is single-role authenticated with burned One-Time Passcode"
+              >
+                <Lock className="w-3 h-3 text-emerald-600" />
+                <span>1-Time Locked</span>
+              </div>
+
+              {/* Terminate Session / Logout Button */}
               <button
-                onClick={() => { setRole('consumer'); setActiveTab('overview'); }}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-bold transition-all ${
-                  role === 'consumer'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
-                }`}
+                onClick={handleLogout}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-black text-rose-700 hover:text-white hover:bg-rose-600 bg-rose-50 border border-rose-200 hover:border-rose-600 transition-all shadow-xs"
+                title="End one-time access session and return to login portal"
               >
-                <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
-                <span>Consumer</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
 
@@ -720,6 +797,36 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* ==================== ONE-TIME ACCESS SECURITY BANNER STRIP ==================== */}
+      <div className="bg-slate-900 text-slate-300 text-xs px-4 lg:px-8 py-2 border-b border-slate-800 flex items-center justify-between shadow-inner">
+        <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="font-extrabold text-white">
+              {role === 'prosumer' ? '☀️ Prosumer Solar Terminal Active' : '🏢 Consumer Smart Grid Portal Active'}
+            </span>
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <span className="text-slate-300">
+              Smart Meter Hardware ID: <strong className="font-mono text-emerald-400 font-bold">{authSession?.account?.meterId || (role === 'prosumer' ? 'INV-402-SOLAR-09' : 'SM-CONS-9912')}</strong>
+            </span>
+            <span className="text-slate-600 hidden md:inline">•</span>
+            <span className="text-slate-400 hidden md:inline">
+              Node: <strong className="font-mono text-amber-300 font-bold">{authSession?.account?.node || 'TX-NORTH-402'}</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 self-end sm:self-center">
+            <span className="bg-slate-800/90 text-amber-300 text-[11px] font-mono px-2 py-0.5 rounded border border-slate-700">
+              OTAC Burned: {authSession?.consumedOtp || 'Single-Use Verified'}
+            </span>
+            <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+              <Lock className="w-3 h-3 text-slate-400" />
+              <span>Role-Locked Session</span>
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* ==================== GUIDED PRESENTATION BANNER ==================== */}
       {isDemoActive && (
