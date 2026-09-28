@@ -69,3 +69,213 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ========================================================================= */
+/* DARK MODE THEME SYSTEM                                                    */
+/* ========================================================================= */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0b1120;
+  color: #f1f5f9;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Background surfaces */
+html.dark .bg-slate-50 {
+  background-color: #0b1120 !important;
+}
+
+html.dark .bg-white,
+html.dark .bg-white\/95 {
+  background-color: #131d32 !important;
+}
+
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/70 {
+  background-color: #17243d !important;
+}
+
+html.dark .bg-slate-200 {
+  background-color: #223253 !important;
+}
+
+/* Borders */
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+  border-color: #243556 !important;
+}
+
+/* Text */
+html.dark .text-slate-900,
+html.dark .text-slate-950 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Tables & Dividers */
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #243556 !important;
+}
+
+html.dark thead.bg-slate-100 {
+  background-color: #17243d !important;
+  color: #94a3b8 !important;
+}
+
+html.dark tbody tr:hover {
+  background-color: #1c2b4a !important;
+}
+
+/* Inputs & Form Controls */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #0d1527 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+/* Modals & Overlays */
+html.dark .fixed .bg-white {
+  background-color: #131d32 !important;
+  border-color: #2e436d !important;
+}
+
+/* Colored thematic cards in dark mode */
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50,
+html.dark .bg-emerald-50\/60,
+html.dark .bg-emerald-50\/70,
+html.dark .bg-emerald-50\/80 {
+  background-color: rgba(6, 78, 59, 0.28) !important;
+}
+
+html.dark .text-emerald-900,
+html.dark .text-emerald-950 {
+  color: #6ee7b7 !important;
+}
+
+html.dark .text-emerald-800 {
+  color: #34d399 !important;
+}
+
+html.dark .text-emerald-700 {
+  color: #10b981 !important;
+}
+
+html.dark .bg-emerald-100 {
+  background-color: rgba(5, 150, 105, 0.25) !important;
+}
+
+html.dark .border-emerald-300,
+html.dark .border-emerald-400 {
+  border-color: #059669 !important;
+}
+
+html.dark .bg-rose-50,
+html.dark .bg-rose-50\/70 {
+  background-color: rgba(136, 19, 55, 0.28) !important;
+}
+
+html.dark .text-rose-900,
+html.dark .text-rose-950 {
+  color: #fda4af !important;
+}
+
+html.dark .text-rose-800 {
+  color: #fb7185 !important;
+}
+
+html.dark .bg-rose-100 {
+  background-color: rgba(225, 29, 72, 0.25) !important;
+}
+
+html.dark .border-rose-300,
+html.dark .border-rose-400 {
+  border-color: #e11d48 !important;
+}
+
+html.dark .bg-indigo-50,
+html.dark .bg-indigo-50\/70 {
+  background-color: rgba(49, 46, 129, 0.28) !important;
+}
+
+html.dark .text-indigo-900,
+html.dark .text-indigo-950 {
+  color: #c7d2fe !important;
+}
+
+html.dark .text-indigo-800 {
+  color: #a5b4fc !important;
+}
+
+html.dark .bg-indigo-100 {
+  background-color: rgba(79, 70, 229, 0.25) !important;
+}
+
+html.dark .border-indigo-200,
+html.dark .border-indigo-300,
+html.dark .border-indigo-400 {
+  border-color: #6366f1 !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/70,
+html.dark .bg-amber-50\/80 {
+  background-color: rgba(120, 53, 15, 0.28) !important;
+}
+
+html.dark .text-amber-900,
+html.dark .text-amber-950 {
+  color: #fde68a !important;
+}
+
+html.dark .text-amber-800 {
+  color: #fcd34d !important;
+}
+
+html.dark .bg-amber-100 {
+  background-color: rgba(217, 119, 6, 0.25) !important;
+}
+
+html.dark .border-amber-200,
+html.dark .border-amber-300,
+html.dark .border-amber-400 {
+  border-color: #d97706 !important;
+}
+
+/* Ensure footer and headers blend cleanly */
+html.dark footer {
+  background-color: #131d32 !important;
+  border-color: #243556 !important;
+  color: #94a3b8 !important;
+}

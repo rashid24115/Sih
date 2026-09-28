@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Sun, ShoppingBag, Zap, Shield, ShieldCheck, Lock, Activity, 
   ArrowRight, Key, Sparkles, CheckCircle2, AlertTriangle, Layers, 
-  ExternalLink, Network, Check
+  ExternalLink, Network, Check, Moon
 } from 'lucide-react';
 import ProsumerLogin from './ProsumerLogin';
 import ConsumerLogin from './ConsumerLogin';
 
-export default function AuthGateway({ onLoginSuccess }) {
+export default function AuthGateway({ onLoginSuccess, theme = 'light', onToggleTheme }) {
   // Determine initial portal from URL hash if available (#prosumer or #consumer)
   const getInitialPortal = () => {
     if (typeof window !== 'undefined') {
@@ -45,8 +45,8 @@ export default function AuthGateway({ onLoginSuccess }) {
       sessionToken: `OTAC-PROS-DEMO-${Date.now()}`,
       account: {
         id: 'PROS-84-NORTH',
-        name: 'Amit Shah',
-        alias: 'Amit Shah (Sector 4 Solar Hub)',
+        name: 'Alex',
+        alias: 'Alex (Sector 4 Solar Hub)',
         meterId: 'INV-402-SOLAR-09',
         node: 'TX-NORTH-402',
         solarCapacityKw: 18.4
@@ -126,6 +126,27 @@ export default function AuthGateway({ onLoginSuccess }) {
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Instant Consumer</span>
             </button>
+
+            {/* Light / Dark Mode Toggle */}
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold border border-slate-700 transition-all shadow-xs"
+                title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Light</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Dark</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </header>

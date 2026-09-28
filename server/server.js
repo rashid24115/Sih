@@ -306,8 +306,8 @@ const getFormattedTime = () => {
 const AUTH_ACCOUNTS = {
   prosumer: {
     id: "PROS-84-NORTH",
-    name: "Amit Shah",
-    alias: "Amit Shah (Sector 4 Solar Hub)",
+    name: "Alex",
+    alias: "Alex (Sector 4 Solar Hub)",
     role: "prosumer",
     meterId: "INV-402-SOLAR-09",
     node: "TX-NORTH-402",
@@ -517,7 +517,7 @@ app.get('/api/offers', (req, res) => {
 
 // 6. Create Offer (Prosumer)
 app.post('/api/offers', (req, res) => {
-  const { amount, price, node, feederArea } = req.body;
+  const { amount, price, node, feederArea, sellerName, sellerAlias, id } = req.body;
   const numAmount = parseFloat(amount);
 
   if (isNaN(numAmount) || numAmount <= 0) {
@@ -533,13 +533,17 @@ app.post('/api/offers', (req, res) => {
   const selectedNode = node || "TX-NORTH-402";
   const targetTransformer = transformers.find(t => t.id === selectedNode) || transformers[0];
 
-  // Headroom check for transformer
-  const isHeadroomSafe = targetTransformer.headroomPct >= 20;
+  // Headroom check for transformer (safety constraint: headroom >= 20% & load < 85%)
+  const isHeadroomSafe = targetTransformer.headroomPct >= 20 && targetTransformer.currentLoadPct < 85;
+  const prosumerName = sellerName || "Alex";
+  const resolvedAlias = sellerAlias || `${prosumerName} (Prosumer)`;
+  const offerId = id || `TRD-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const newOffer = {
-    id: `OFF-${Math.floor(100 + Math.random() * 900)}`,
+    id: offerId,
     node: selectedNode,
-    sellerAlias: "Prosumer (You)",
+    sellerName: prosumerName,
+    sellerAlias: resolvedAlias,
     amount: numAmount,
     price: price || "₹3.85/kWh",
     priceNumeric: parseFloat(price?.replace(/[^\d.]/g, '') || 3.85),
@@ -630,10 +634,11 @@ app.post('/api/trade', (req, res) => {
   const priceVal = offer.priceNumeric || 3.80;
   const totalCost = (actualAmount * priceVal).toFixed(2);
 
-  // Update offer remaining amount
+  // Update offer remaining amount and status
   offer.amount = +(offer.amount - actualAmount).toFixed(1);
   if (offer.amount <= 0) {
-    gridOffers = gridOffers.filter(o => o.id !== offer.id);
+    offer.type = "COMPLETED";
+    offer.status = "COMPLETED";
   }
 
   // Update Consumer
@@ -644,12 +649,34 @@ app.post('/api/trade', (req, res) => {
   prosumerData.sharedTotal = +(prosumerData.sharedTotal + actualAmount).toFixed(1);
   prosumerData.score += 25;
 
-  // Record Transaction
-  const newTxn = {
-    id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
-    time: getFormattedTime(),
-    seller: offer.sellerAlias,
-    buyer: "Gupta Bakery (You)", // In consumer section: always the single consumer!
+  // Update Transformer State dynamically
+  if (transformer) {
+    const loadDelta = Math.round((actualAmount / transformer.capacityKw) * 100);
+    transformer.currentLoadPct = Math.min(100, transformer.currentLoadPct + Math.max(1, loadDelta));
+    transformer.headroomPct = Math.max(0, 100 - transformer.currentLoadPct);
+    if (transformer.currentLoadPct > 85) transformer.status = "OVERLOAD_ALERT";
+    else if (transformer.currentLoadPct > 75) transformer.status = "CONSTRAINED";
+    else transformer.status = "NORMAL";
+
+    if (transformer.id === prosumerData.transformerId) {
+      prosumerData.gridLoad = transformer.currentLoadPct;
+      prosumerData.gridHeadroom = transformer.headroomPct;
+    }
+  }
+
+  // Record Transaction with matching Trade/Txn ID
+  const sharedTxnId = offer.id.startsWith('OFF-') ? offer.id.replace('OFF-', 'TX-') : offer.id;
+  const txHash = `0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 8)}`;
+  const formattedTime = getFormattedTime();
+
+  const prosumerTxn = {
+    id: sharedTxnId,
+    tradeId: offer.id,
+    time: formattedTime,
+    seller: `${offer.sellerName || 'Alex'} (You)`,
+    sellerName: offer.sellerName || 'Alex',
+    buyer: "Gupta Bakery",
+    buyerName: "Gupta Bakery",
     amount: `${actualAmount.toFixed(1)} kWh`,
     rate: offer.price,
     price: offer.price,
@@ -658,22 +685,35 @@ app.post('/api/trade', (req, res) => {
     transformer: offer.node,
     status: "Confirmed",
     gridStatus: "Verified",
-    hash: `0x${Math.random().toString(16).substring(2, 10)}${Math.random().toString(16).substring(2, 8)}`
+    hash: txHash
   };
 
-  consumerTransactions.unshift(newTxn);
-  if (offer.sellerAlias.includes("You")) {
-    prosumerTransactions.unshift({
-      ...newTxn,
-      seller: "Alex (You)",
-      buyer: "Gupta Bakery"
-    });
-  }
+  const consumerTxn = {
+    id: sharedTxnId,
+    tradeId: offer.id,
+    time: formattedTime,
+    seller: offer.sellerAlias || `${offer.sellerName || 'Alex'} (Prosumer)`,
+    sellerName: offer.sellerName || 'Alex',
+    buyer: "Gupta Bakery (You)",
+    buyerName: "Gupta Bakery",
+    amount: `${actualAmount.toFixed(1)} kWh`,
+    rate: offer.price,
+    price: offer.price,
+    value: `₹${totalCost}`,
+    totalValue: `₹${totalCost}`,
+    transformer: offer.node,
+    status: "Confirmed",
+    gridStatus: "Verified",
+    hash: txHash
+  };
+
+  consumerTransactions.unshift(consumerTxn);
+  prosumerTransactions.unshift(prosumerTxn);
 
   res.json({
     success: true,
     message: "Trade successfully approved by smart-meter gateway and settled on microgrid ledger",
-    transaction: newTxn,
+    transaction: consumerTxn,
     updatedConsumer: consumerData,
     checks
   });

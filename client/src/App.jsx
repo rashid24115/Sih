@@ -4,209 +4,26 @@ import {
   BarChart3, RefreshCw, Award, ChevronRight, MapPin, Sparkles, TrendingUp, Cpu, Compass,
   FileText, LayoutDashboard, ShoppingBag, Search, Check, XCircle, CloudSun,
   Thermometer, Wind, AlertCircle, CheckCircle, ShieldAlert, Type, Eye, RotateCcw,
-  SlidersHorizontal, Layers, Server, Network, Maximize2, X, LogOut, Lock, Key
+  SlidersHorizontal, Layers, Server, Network, Maximize2, X, LogOut, Lock, Key, Moon
 } from 'lucide-react';
 import AuthGateway from './components/AuthGateway';
+import {
+  loadSharedState,
+  saveSharedState,
+  subscribeSharedState,
+  createTradeOfferInState,
+  executeTradeInState,
+  resetSharedState,
+  INITIAL_TRANSFORMERS,
+  INITIAL_PRODUCER_DATA,
+  INITIAL_CONSUMER_DATA,
+  INITIAL_GRID_OFFERS,
+  INITIAL_TRANSACTIONS
+} from './sharedState';
 
 const API_BASE = '/api';
 
-const INITIAL_PRODUCER_DATA = {
-  generation: 18.4,
-  usedLocally: 10.2,
-  availableSurplus: 8.2,
-  forecastSurplus: 9.6,
-  forecastConfidence: 87,
-  gridLoad: 62,
-  gridHeadroom: 38,
-  transformerId: "TX-NORTH-402",
-  sharedTotal: 42.0,
-  score: 840,
-  badge: "Solar Supporter",
-  irradiance: 845,
-  temp: 31,
-  humidity: 42,
-  cloudCover: "12%",
-  predictedTotal: 22.5
-};
 
-const INITIAL_GRID_OFFERS = [
-  {
-    id: "OFF-401",
-    node: "TX-NORTH-402",
-    sellerAlias: "Prosumer #84 (Sector 4)",
-    amount: 4.0,
-    price: "₹3.80/kWh",
-    locality: "North Sector 4 Substation",
-    transformerLoad: 62,
-    availableHeadroom: 38,
-    type: "APPROVED",
-    reason: "Safe headroom available & within consumer quota limit."
-  },
-  {
-    id: "OFF-108",
-    node: "TX-WEST-108",
-    sellerAlias: "Prosumer #12 (West Block)",
-    amount: 10.0,
-    price: "₹3.50/kWh",
-    locality: "West Feeder 2 Distribution",
-    transformerLoad: 91,
-    availableHeadroom: 9,
-    type: "BLOCKED_TRANSFORMER",
-    reason: "Trade rejected — prevents transformer overload."
-  },
-  {
-    id: "OFF-205",
-    node: "TX-EAST-205",
-    sellerAlias: "Prosumer #55 (East Hub)",
-    amount: 3.5,
-    price: "₹3.90/kWh",
-    locality: "East Grid Sector Transformer",
-    transformerLoad: 55,
-    availableHeadroom: 45,
-    type: "BLOCKED_CONSUMER_LIMIT",
-    reason: "Exceeds daily consumer sanctioned headroom quota limit."
-  },
-  {
-    id: "OFF-309",
-    node: "TX-SOUTH-309",
-    sellerAlias: "Prosumer #30 (South Solar)",
-    amount: 2.5,
-    price: "₹3.75/kWh",
-    locality: "South Feeder 1 Hub",
-    transformerLoad: 48,
-    availableHeadroom: 52,
-    type: "APPROVED",
-    reason: "Safe headroom & optimal feeder proximity."
-  },
-  {
-    id: "OFF-501",
-    node: "TX-CENTRAL-501",
-    sellerAlias: "Prosumer #99 (Central Plaza)",
-    amount: 8.0,
-    price: "₹3.60/kWh",
-    locality: "Central Commercial Node B",
-    transformerLoad: 88,
-    availableHeadroom: 12,
-    type: "BLOCKED_TRANSFORMER",
-    reason: "Transformer capacity constrained."
-  },
-  {
-    id: "OFF-612",
-    node: "TX-SUB-612",
-    sellerAlias: "Prosumer #42 (Substation 6)",
-    amount: 5.0,
-    price: "₹3.85/kWh",
-    locality: "Substation Ring 6",
-    transformerLoad: 40,
-    availableHeadroom: 60,
-    type: "APPROVED",
-    reason: "Cleared by smart-meter gateway."
-  }
-];
-
-const INITIAL_CONSUMER_DATA = {
-  usageToday: 7.4,
-  permittedLimit: 10.0,
-  remainingLimit: 2.6,
-  status: "Within permitted limit",
-  meterId: "SM-CONS-9912"
-};
-
-const INITIAL_CONSUMER_TRANSACTIONS = [
-  {
-    id: "TX-1001",
-    time: "Today, 09:15 AM",
-    seller: "Amit Shah (Sector 4)",
-    buyer: "Gupta Bakery (You)",
-    amount: "2.0 kWh",
-    rate: "₹5.20 / kWh",
-    price: "₹5.20 / kWh",
-    value: "₹10.40",
-    totalValue: "₹10.40",
-    transformer: "T-101",
-    status: "Confirmed",
-    gridStatus: "Verified",
-    hash: "0x7f2a99c3e21b88a914c40149e"
-  },
-  {
-    id: "TX-1002",
-    time: "Today, 10:45 AM",
-    seller: "Rajesh Kumar (Prosumer #31)",
-    buyer: "Gupta Bakery (You)",
-    amount: "3.2 kWh",
-    rate: "₹3.80 / kWh",
-    price: "₹3.80 / kWh",
-    value: "₹12.16",
-    totalValue: "₹12.16",
-    transformer: "TX-NORTH-402",
-    status: "Confirmed",
-    gridStatus: "Verified",
-    hash: "0x8e1a49f2b31c99b825d50250f"
-  },
-  {
-    id: "TX-1003",
-    time: "Yesterday, 02:40 PM",
-    seller: "South Solar (Prosumer #30)",
-    buyer: "Gupta Bakery (You)",
-    amount: "2.5 kWh",
-    rate: "₹3.75 / kWh",
-    price: "₹3.75 / kWh",
-    value: "₹9.38",
-    totalValue: "₹9.38",
-    transformer: "TX-SOUTH-309",
-    status: "Confirmed",
-    gridStatus: "Verified",
-    hash: "0x3b1c8109d43f07a22659e238f"
-  }
-];
-
-const INITIAL_PROSUMER_TRANSACTIONS = [
-  {
-    id: "TX-1001",
-    time: "Today, 09:15 AM",
-    seller: "Alex (You)",
-    buyer: "Gupta Bakery",
-    amount: "2.0 kWh",
-    rate: "₹5.20 / kWh",
-    price: "₹5.20 / kWh",
-    value: "₹10.40",
-    totalValue: "₹10.40",
-    transformer: "T-101",
-    status: "Confirmed",
-    gridStatus: "Verified",
-    hash: "0x7f2a99c3e21b88a914c40149e"
-  },
-  {
-    id: "TX-1004",
-    time: "Today, 11:20 AM",
-    seller: "Alex (You)",
-    buyer: "Metro Mart #14",
-    amount: "4.0 kWh",
-    rate: "₹3.85 / kWh",
-    price: "₹3.85 / kWh",
-    value: "₹15.40",
-    totalValue: "₹15.40",
-    transformer: "TX-NORTH-402",
-    status: "Confirmed",
-    gridStatus: "Verified",
-    hash: "0x9c3e21b88a914c40149e7f2a"
-  },
-  {
-    id: "TX-1005",
-    time: "Yesterday, 02:40 PM",
-    seller: "Alex (You)",
-    buyer: "Sharma Dairy #90",
-    amount: "5.0 kWh",
-    rate: "₹3.85 / kWh",
-    price: "₹3.85 / kWh",
-    value: "₹19.25",
-    totalValue: "₹19.25",
-    transformer: "TX-NORTH-402",
-    status: "Confirmed",
-    gridStatus: "Verified",
-    hash: "0x14c40149e7f2a99c3e21b88a"
-  }
-];
 
 const AI_HOURLY_FORECAST = [
   { time: "08:00", val: 1.2, isPeak: false },
@@ -275,17 +92,80 @@ export default function App() {
   };
 
 
-  // Application Data States
-  const [prosumerData, setProsumerData] = useState(INITIAL_PRODUCER_DATA);
-  const [consumerData, setConsumerData] = useState(INITIAL_CONSUMER_DATA);
-  const [gridOffers, setGridOffers] = useState(INITIAL_GRID_OFFERS);
-  const [consumerTransactions, setConsumerTransactions] = useState(INITIAL_CONSUMER_TRANSACTIONS);
-  const [prosumerTransactions, setProsumerTransactions] = useState(INITIAL_PROSUMER_TRANSACTIONS);
-  const [transformers, setTransformers] = useState([]);
+  // Application Data States (Single Shared Source of Truth)
+  const [sharedMarketState, setSharedMarketState] = useState(() => loadSharedState());
+
+  const prosumerData = sharedMarketState.prosumerData;
+  const consumerData = sharedMarketState.consumerData;
+  const gridOffers = sharedMarketState.gridOffers;
+  const transformers = sharedMarketState.transformers;
+  const transactions = sharedMarketState.transactions;
   const [isBackendConnected, setIsBackendConnected] = useState(false);
 
   // Active ledger based on current role perspective
-  const activeTransactions = role === 'consumer' ? consumerTransactions : prosumerTransactions;
+  const activeTransactions = transactions.map(tx => {
+    let displaySeller = tx.seller;
+    let displayBuyer = tx.buyer;
+
+    if (role === 'prosumer') {
+      if (tx.sellerName === 'Alex' || (tx.seller && tx.seller.includes('Alex')) || (tx.seller && tx.seller.includes('You'))) {
+        displaySeller = `${tx.sellerName || 'Alex'} (You)`;
+      }
+      if (tx.buyerName) {
+        displayBuyer = tx.buyerName;
+      }
+    } else {
+      // Consumer view
+      if (tx.sellerName) {
+        displaySeller = tx.sellerAlias || `${tx.sellerName} (Prosumer)`;
+      }
+      if (tx.buyerName === 'Gupta Bakery' || (tx.buyer && tx.buyer.includes('Gupta Bakery')) || (tx.buyer && tx.buyer.includes('You'))) {
+        displayBuyer = `${tx.buyerName || 'Gupta Bakery'} (You)`;
+      }
+    }
+
+    return {
+      ...tx,
+      displaySeller,
+      displayBuyer
+    };
+  });
+
+  // Light / Dark Theme State Engine
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('urjagrid_theme') || 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('urjagrid_theme', next);
+      } catch {}
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Subscribe to shared state changes (instant cross-portal / cross-tab synchronization)
+  useEffect(() => {
+    const unsubscribe = subscribeSharedState((newState) => {
+      setSharedMarketState(newState);
+    });
+    return unsubscribe;
+  }, []);
 
   // Accessibility & Font Size Engine State
   const [fontSize, setFontSize] = useState('normal'); // 'normal', 'large', 'xlarge'
@@ -302,7 +182,7 @@ export default function App() {
   const [validationStep, setValidationStep] = useState(0); 
   const [tradeSuccess, setTradeSuccess] = useState(false);
   const [tradeReceipt, setTradeReceipt] = useState(null);
-  const [selectedTxnForDetails, setSelectedTxnForDetails] = useState(INITIAL_CONSUMER_TRANSACTIONS[0]);
+  const [selectedTxnForDetails, setSelectedTxnForDetails] = useState(() => transactions[0] || INITIAL_TRANSACTIONS[0]);
   const [previewImage, setPreviewImage] = useState(null);
 
   // Form Input
@@ -378,7 +258,7 @@ export default function App() {
     }
   }, [fontSize, isHighContrast]);
 
-  // Initial Fetch from Backend
+  // Initial Fetch from Backend (bi-directional sync with shared state)
   const fetchBackendData = async () => {
     try {
       const [resPros, resCons, resOff, resTx, resTrans] = await Promise.all([
@@ -391,23 +271,34 @@ export default function App() {
 
       const isJson = (resPros.headers.get('content-type') || '').includes('application/json');
       if (resPros.ok && resCons.ok && resOff.ok && resTx.ok && resTrans.ok && isJson) {
-        setProsumerData(await resPros.json());
-        setConsumerData(await resCons.json());
-        setGridOffers(await resOff.json());
+        const bePros = await resPros.json();
+        const beCons = await resCons.json();
+        const beOff = await resOff.json();
         const txData = await resTx.json();
+        const beTrans = await resTrans.json();
+
+        let mergedTx = [];
         if (txData && txData.consumer && txData.prosumer) {
-          setConsumerTransactions(txData.consumer);
-          setProsumerTransactions(txData.prosumer);
+          mergedTx = txData.consumer;
         } else if (Array.isArray(txData)) {
-          setConsumerTransactions(txData);
+          mergedTx = txData;
         }
-        setTransformers(await resTrans.json());
+
+        const syncedState = {
+          prosumerData: bePros,
+          consumerData: beCons,
+          gridOffers: beOff,
+          transactions: mergedTx.length > 0 ? mergedTx : sharedMarketState.transactions,
+          transformers: beTrans && beTrans.length === 6 ? beTrans : sharedMarketState.transformers
+        };
+
+        saveSharedState(syncedState);
+        setSharedMarketState(syncedState);
         setIsBackendConnected(true);
       } else {
         setIsBackendConnected(false);
       }
     } catch (err) {
-      console.warn('Backend server not reachable or starting up. Using local high-fidelity state.', err);
       setIsBackendConnected(false);
     }
   };
@@ -416,14 +307,12 @@ export default function App() {
     fetchBackendData();
   }, []);
 
-  // Update selected receipt when role changes
+  // Update selected receipt when role or transactions change
   useEffect(() => {
-    if (role === 'consumer') {
-      setSelectedTxnForDetails(consumerTransactions[0] || INITIAL_CONSUMER_TRANSACTIONS[0]);
-    } else {
-      setSelectedTxnForDetails(prosumerTransactions[0] || INITIAL_PROSUMER_TRANSACTIONS[0]);
+    if (activeTransactions.length > 0) {
+      setSelectedTxnForDetails(activeTransactions[0]);
     }
-  }, [role]);
+  }, [role, activeTransactions.length]);
 
   const handleNextDemoStep = () => {
     // Traverse steps belonging strictly to current authenticated role
@@ -475,174 +364,130 @@ export default function App() {
     if (window.confirm("Reset all URJAGRID demo records and balances back to initial state?")) {
       try {
         await fetch(`${API_BASE}/reset`, { method: 'POST' });
-        await fetchBackendData();
-      } catch (e) {
-        setProsumerData(INITIAL_PRODUCER_DATA);
-        setConsumerData(INITIAL_CONSUMER_DATA);
-        setGridOffers(INITIAL_GRID_OFFERS);
-        setTransactions(INITIAL_TRANSACTIONS);
-      }
+      } catch (e) {}
+      const reset = resetSharedState();
+      setSharedMarketState(reset);
+      setSelectedTxnForDetails(reset.transactions[0]);
       setDemoStep(0);
       setIsDemoActive(false);
     }
   };
 
-  // Create Surplus Offer
+  // Create Surplus Offer (Prosumer)
   const handleCreateOffer = async (e) => {
     e.preventDefault();
     setValidationStep(1);
 
     const numAmount = parseFloat(shareAmount);
+    const prosumerName = authSession?.account?.name || 'Alex';
+    const prosumerAlias = `${prosumerName} (Prosumer)`;
 
     try {
-      if (isBackendConnected) {
-        const res = await fetch(`${API_BASE}/offers`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount: numAmount,
-            price: sharePrice,
-            node: preferredNode
-          })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setValidationStep(2);
-          setTimeout(() => {
-            fetchBackendData();
-            setShowShareModal(false);
-            setValidationStep(0);
-          }, 1000);
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn("Using offline fallback creation", err);
-    }
-
-    // Local Fallback
-    setTimeout(() => {
-      setValidationStep(2);
-      const newOffer = {
-        id: `OFF-${Math.floor(100 + Math.random() * 900)}`,
-        node: preferredNode,
-        sellerAlias: "Prosumer (You)",
+      // 1. Create offer in single shared source of truth
+      const { newOffer, updatedState } = createTradeOfferInState({
         amount: numAmount,
         price: sharePrice,
-        locality: preferredNode === "TX-NORTH-402" ? "North Sector 4 Substation" : "Feeder Loop Distribution",
-        transformerLoad: 62,
-        availableHeadroom: 38,
-        type: "APPROVED",
-        reason: "Newly published prosumer surplus offer cleared by smart meter."
-      };
+        node: preferredNode,
+        sellerName: prosumerName,
+        sellerAlias: prosumerAlias
+      });
 
-      setGridOffers([newOffer, ...gridOffers]);
-      setProsumerData(prev => ({
-        ...prev,
-        availableSurplus: Math.max(0, prev.availableSurplus - numAmount)
-      }));
+      // 2. Also notify backend if online
+      if (isBackendConnected) {
+        try {
+          await fetch(`${API_BASE}/offers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: newOffer.id,
+              amount: numAmount,
+              price: sharePrice,
+              node: preferredNode,
+              sellerName: prosumerName,
+              sellerAlias: prosumerAlias
+            })
+          });
+        } catch (beErr) {
+          console.warn("Backend sync notice:", beErr);
+        }
+      }
 
+      setValidationStep(2);
       setTimeout(() => {
+        setSharedMarketState(loadSharedState());
         setShowShareModal(false);
         setValidationStep(0);
       }, 1000);
-    }, 1200);
+    } catch (err) {
+      alert(err.message || "Failed to create trade offer");
+      setValidationStep(0);
+    }
   };
 
-  // Execute Trade
+  // Execute Trade (Consumer)
   const handleExecuteTrade = async (offer) => {
-    if (offer.type !== 'APPROVED') return;
+    if (offer.type !== 'APPROVED' || offer.status === 'COMPLETED' || offer.amount <= 0) return;
 
     setValidationStep(1);
 
+    const buyerName = authSession?.account?.name || "Gupta Bakery";
+
     try {
+      // 1. Execute in Single Shared Source of Truth
+      const { newTxn, updatedState } = executeTradeInState({
+        offerId: offer.id,
+        requestedKwh: Math.min(offer.amount, consumerData.remainingLimit),
+        buyerName
+      });
+
+      // 2. Also notify backend if online
       if (isBackendConnected) {
-        const res = await fetch(`${API_BASE}/trade`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            offerId: offer.id,
-            requestedKwh: Math.min(offer.amount, consumerData.remainingLimit)
-          })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setTimeout(() => {
-            setValidationStep(2);
-            setTradeSuccess(true);
-            setTradeReceipt(data.transaction);
-            setSelectedTxnForDetails(data.transaction);
-            fetchBackendData();
-          }, 1200);
-          return;
+        try {
+          await fetch(`${API_BASE}/trade`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              offerId: offer.id,
+              requestedKwh: Math.min(offer.amount, consumerData.remainingLimit)
+            })
+          });
+        } catch (beErr) {
+          console.warn("Backend trade sync notice:", beErr);
         }
       }
+
+      setTimeout(() => {
+        const freshState = loadSharedState();
+        setSharedMarketState(freshState);
+        setValidationStep(2);
+        setTradeSuccess(true);
+        setTradeReceipt(newTxn);
+        setSelectedTxnForDetails(newTxn);
+      }, 1200);
     } catch (err) {
-      console.warn("Using offline trade logic", err);
+      alert(err.message || "Failed to execute trade");
+      setValidationStep(0);
     }
-
-    // Offline Local Trade Fallback
-    setTimeout(() => {
-      setValidationStep(2);
-      setTradeSuccess(true);
-
-      const amountToBuy = Math.min(offer.amount, consumerData.remainingLimit);
-      const priceVal = parseFloat(offer.price?.replace(/[^\d.]/g, '') || 3.80);
-      const totalCost = (amountToBuy * priceVal).toFixed(2);
-      
-      const newTx = {
-        id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
-        time: "Just now",
-        seller: offer.sellerAlias,
-        buyer: "Consumer (You)",
-        amount: `${amountToBuy.toFixed(1)} kWh`,
-        rate: offer.price,
-        price: offer.price,
-        value: `₹${totalCost}`,
-        totalValue: `₹${totalCost}`,
-        transformer: offer.node,
-        status: "Confirmed",
-        gridStatus: "Verified"
-      };
-
-      setTradeReceipt(newTx);
-      setSelectedTxnForDetails(newTx);
-      setTransactions([newTx, ...transactions]);
-      
-      setGridOffers(prev => prev.map(o => o.id === offer.id ? { ...o, amount: Math.max(0, +(o.amount - amountToBuy).toFixed(1)) } : o));
-
-      setProsumerData(prev => ({
-        ...prev,
-        sharedTotal: +(prev.sharedTotal + amountToBuy).toFixed(1),
-        score: prev.score + 25
-      }));
-
-      setConsumerData(prev => ({
-        ...prev,
-        usageToday: +(prev.usageToday + amountToBuy).toFixed(1),
-        remainingLimit: Math.max(0, +(prev.remainingLimit - amountToBuy).toFixed(1))
-      }));
-
-    }, 1200);
   };
 
   // Filtered Grid Offers
   const filteredOffers = gridOffers.filter(offer => {
     if (offerFilter === 'APPROVED' && offer.type !== 'APPROVED') return false;
-    if (offerFilter === 'BLOCKED' && offer.type === 'APPROVED') return false;
+    if (offerFilter === 'BLOCKED' && !offer.type.startsWith('BLOCKED')) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return offer.id.toLowerCase().includes(q) || 
              offer.node.toLowerCase().includes(q) || 
              offer.locality.toLowerCase().includes(q) ||
-             offer.sellerAlias.toLowerCase().includes(q);
+             (offer.sellerAlias && offer.sellerAlias.toLowerCase().includes(q)) ||
+             (offer.sellerName && offer.sellerName.toLowerCase().includes(q));
     }
     return true;
   });
 
   // Enforce Separate Login Gateway if no one-time authenticated session
   if (!authSession) {
-    return <AuthGateway onLoginSuccess={handleLoginSuccess} />;
+    return <AuthGateway onLoginSuccess={handleLoginSuccess} theme={theme} onToggleTheme={toggleTheme} />;
   }
 
   return (
@@ -735,6 +580,29 @@ export default function App() {
               <span className="hidden lg:inline">{isHighContrast ? 'High Contrast On' : 'High Contrast'}</span>
             </button>
 
+            {/* Light / Dark Mode Toggle (Session Persistent, Seamless Switch) */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shadow-xs ${
+                theme === 'dark'
+                  ? 'bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span className="hidden lg:inline">Light Mode</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-slate-600" />
+                  <span className="hidden lg:inline">Dark Mode</span>
+                </>
+              )}
+            </button>
+
             {/* Role-Locked One-Time Session Badge (Replaces open role switcher) */}
             <div className="bg-slate-100 p-1 rounded-xl border border-slate-300 flex items-center gap-1.5 shadow-xs">
               <div 
@@ -752,7 +620,7 @@ export default function App() {
                 )}
                 <span className="capitalize">{role} Portal</span>
                 <span className="opacity-80 font-normal hidden lg:inline">
-                  • {authSession?.account?.name || (role === 'prosumer' ? 'Amit Shah' : 'Gupta Bakery')}
+                  • {authSession?.account?.name || (role === 'prosumer' ? 'Alex' : 'Gupta Bakery')}
                 </span>
               </div>
 
@@ -893,7 +761,7 @@ export default function App() {
                   }`}
                 >
                   <BarChart3 className="w-5 h-5" />
-                  <span>My Active Offers ({gridOffers.filter(o => o.sellerAlias.includes("You")).length})</span>
+                  <span>My Active Offers ({gridOffers.filter(o => (o.sellerName === 'Alex' || (o.sellerAlias && (o.sellerAlias.includes('Alex') || o.sellerAlias.includes('You')))) && o.status !== 'COMPLETED' && o.amount > 0).length})</span>
                 </button>
               </>
             ) : (
@@ -939,47 +807,71 @@ export default function App() {
             </button>
           </div>
 
-          {/* Transformer Node Hardware Telemetry Widget (Clean, No Images) */}
-          <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Cpu className="w-5 h-5 text-emerald-600" />
-                <span className="text-sm font-extrabold text-slate-900">Feeder Transformer</span>
-              </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                HEALTHY
-              </span>
-            </div>
-            
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center text-slate-600">
-                <span className="font-semibold">Local Node:</span>
-                <span className="font-mono text-slate-950 font-bold text-sm bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
-                  {prosumerData.transformerId}
-                </span>
-              </div>
-              
-              <div>
-                <div className="flex justify-between text-slate-700 mb-1.5">
-                  <span className="font-semibold">Current Load:</span>
-                  <span className="text-emerald-700 font-extrabold font-mono text-base">{prosumerData.gridLoad}%</span>
-                </div>
-                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-300">
-                  <div 
-                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-700" 
-                    style={{ width: `${prosumerData.gridLoad}%` }}
-                  ></div>
-                </div>
-              </div>
+          {/* Transformer Node Hardware Telemetry Widget (Dynamically Calculated) */}
+          {(() => {
+            const activeNode = transformers.find(t => t.id === prosumerData.transformerId) || transformers[0] || {
+              id: "TX-NORTH-402",
+              currentLoadPct: prosumerData.gridLoad,
+              headroomPct: prosumerData.gridHeadroom,
+              capacityKw: 100,
+              status: "NORMAL"
+            };
+            const isWarn = activeNode.currentLoadPct > 85;
+            const isConst = activeNode.currentLoadPct > 75 && activeNode.currentLoadPct <= 85;
 
-              <div className="flex justify-between items-center text-slate-700 pt-1 border-t border-slate-100">
-                <span className="font-semibold">Available Headroom:</span>
-                <span className="text-emerald-800 font-black font-mono text-base">
-                  {prosumerData.gridHeadroom}% (15.2 kWh)
-                </span>
+            return (
+              <div className="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-5 h-5 text-emerald-600" />
+                    <span className="text-sm font-extrabold text-slate-900">Feeder Transformer</span>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-black border ${
+                    isWarn 
+                      ? 'bg-rose-100 text-rose-800 border-rose-300'
+                      : isConst 
+                      ? 'bg-amber-100 text-amber-800 border-amber-300'
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  }`}>
+                    {isWarn ? 'OVERLOAD RISK' : isConst ? 'CONSTRAINED' : 'HEALTHY'}
+                  </span>
+                </div>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span className="font-semibold">Local Node:</span>
+                    <span className="font-mono text-slate-950 font-bold text-sm bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
+                      {activeNode.id}
+                    </span>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-slate-700 mb-1.5">
+                      <span className="font-semibold">Current Load:</span>
+                      <span className={`font-extrabold font-mono text-base ${isWarn ? 'text-rose-600' : isConst ? 'text-amber-600' : 'text-emerald-700'}`}>
+                        {activeNode.currentLoadPct}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-300">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          isWarn ? 'bg-rose-500' : isConst ? 'bg-amber-500' : 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                        }`} 
+                        style={{ width: `${activeNode.currentLoadPct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-slate-700 pt-1 border-t border-slate-100">
+                    <span className="font-semibold">Available Headroom:</span>
+                    <span className="text-emerald-800 font-black font-mono text-base">
+                      {activeNode.headroomPct}% ({((activeNode.capacityKw || 100) * activeNode.headroomPct / 100).toFixed(1)} kWh)
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
 
         </aside>
 
@@ -1206,29 +1098,38 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {gridOffers.filter(o => o.sellerAlias.includes("You")).map(offer => (
-                      <div key={offer.id} className="bg-white border-2 border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm metric-card">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{offer.id}</span>
-                            <span className="text-xs px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold">
-                              ACTIVE
+                    {gridOffers.filter(o => o.sellerName === 'Alex' || (o.sellerAlias && (o.sellerAlias.includes("Alex") || o.sellerAlias.includes("You")))).map(offer => {
+                      const isCompleted = offer.status === 'COMPLETED' || offer.amount <= 0;
+                      return (
+                        <div key={offer.id} className="bg-white border-2 border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm metric-card">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-sm font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{offer.id}</span>
+                              <span className={`text-xs px-2.5 py-1 rounded font-extrabold border ${
+                                isCompleted 
+                                  ? 'bg-slate-100 text-slate-700 border-slate-300' 
+                                  : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              }`}>
+                                {isCompleted ? 'COMPLETED' : 'ACTIVE'}
+                              </span>
+                            </div>
+                            <span className="font-mono text-lg font-black text-amber-600">{offer.price}</span>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="text-3xl font-black font-mono text-slate-900">{offer.amount} kWh</div>
+                            <div className="text-sm font-semibold text-slate-600">Node: {offer.node} ({offer.locality})</div>
+                          </div>
+
+                          <div className="text-sm text-slate-700 pt-3 border-t border-slate-100 flex items-center justify-between font-semibold">
+                            <span>Transformer Headroom: {offer.availableHeadroom}%</span>
+                            <span className={isCompleted ? "text-slate-500 font-extrabold" : "text-emerald-700 font-extrabold"}>
+                              Status: {isCompleted ? 'Settled on Ledger' : 'Cleared for Trading'}
                             </span>
                           </div>
-                          <span className="font-mono text-lg font-black text-amber-600">{offer.price}</span>
                         </div>
-
-                        <div className="space-y-1">
-                          <div className="text-3xl font-black font-mono text-slate-900">{offer.amount} kWh</div>
-                          <div className="text-sm font-semibold text-slate-600">Node: {offer.node} ({offer.locality})</div>
-                        </div>
-
-                        <div className="text-sm text-slate-700 pt-3 border-t border-slate-100 flex items-center justify-between font-semibold">
-                          <span>Transformer Headroom: {offer.availableHeadroom}%</span>
-                          <span className="text-emerald-700 font-extrabold">Status: Cleared</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1249,7 +1150,7 @@ export default function App() {
                       <div className="flex items-center gap-2 text-sm font-extrabold text-emerald-800 uppercase tracking-wider mb-1.5">
                         <ShoppingBag className="w-5 h-5 text-emerald-700 stroke-[2.5]" /> Consumer Portal • Meter ID: {consumerData.meterId}
                       </div>
-                      <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Hello, Alex 👋</h2>
+                      <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Hello, {authSession?.account?.name || 'Gupta Bakery'} 👋</h2>
                       <p className="text-base font-medium text-slate-700 mt-2 max-w-xl leading-relaxed">
                         Purchase clean local solar energy directly from validated neighborhood prosumers while maintaining feeder transformer stability.
                       </p>
@@ -1368,6 +1269,73 @@ export default function App() {
                     {filteredOffers.map(offer => {
                       
                       // ==========================================
+                      // CARD STYLE 0: COMPLETED TRADE (SETTLED)
+                      // ==========================================
+                      if (offer.type === 'COMPLETED' || offer.status === 'COMPLETED' || offer.amount <= 0) {
+                        return (
+                          <div 
+                            key={offer.id} 
+                            className="bg-slate-50 border-3 border-slate-300 rounded-3xl p-6 flex flex-col justify-between shadow-md relative overflow-hidden space-y-5 metric-card opacity-90"
+                          >
+                            <div>
+                              {/* Header */}
+                              <div className="flex items-start gap-3.5 pb-4 border-b border-slate-200">
+                                <div className="w-10 h-10 rounded-full bg-slate-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                                  <CheckCircle className="w-6 h-6 stroke-[3]" />
+                                </div>
+                                <div>
+                                  <h4 className="text-base font-black text-slate-900 tracking-wider uppercase">
+                                    COMPLETED
+                                  </h4>
+                                  <p className="text-sm text-slate-600 font-bold">
+                                    Trade Settled on Ledger
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Details Table */}
+                              <div className="py-4 space-y-3 text-sm font-sans">
+                                <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Prosumer Seller</span>
+                                  <span className="font-black text-slate-900 font-sans text-sm">{offer.sellerName || offer.sellerAlias || "Alex"}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Trade ID</span>
+                                  <span className="font-mono font-bold text-xs bg-slate-200 text-slate-800 px-2 py-0.5 rounded">{offer.id}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Transformer Node</span>
+                                  <span className="font-bold text-slate-700 text-xs">{offer.node}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Settled Status</span>
+                                  <span className="font-black text-emerald-700 font-mono text-base">Completed</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-800 pt-1">
+                                  <span className="font-semibold">Unit Price</span>
+                                  <span className="font-black text-slate-700 font-mono text-base">{offer.price}</span>
+                                </div>
+                              </div>
+
+                              {/* Outcome Footer */}
+                              <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-sm font-black text-slate-700">
+                                <span>Result: COMPLETED</span>
+                                <CheckCircle className="w-5 h-5 text-emerald-600" />
+                              </div>
+                            </div>
+
+                            <button
+                              disabled
+                              className="w-full bg-slate-200 text-slate-500 font-extrabold py-3.5 rounded-2xl text-sm cursor-not-allowed flex items-center justify-center gap-2 border border-slate-300"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Trade Completed</span>
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      // ==========================================
                       // CARD STYLE 1: APPROVED (GREEN)
                       // ==========================================
                       if (offer.type === 'APPROVED') {
@@ -1395,6 +1363,14 @@ export default function App() {
                               {/* Details Table with Big Clear Numbers */}
                               <div className="py-4 space-y-3 text-sm font-sans">
                                 <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Prosumer Seller</span>
+                                  <span className="font-black text-emerald-950 font-sans text-sm">{offer.sellerName || offer.sellerAlias || "Alex"}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Trade ID</span>
+                                  <span className="font-mono font-bold text-xs bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded">{offer.id}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-800">
                                   <span className="font-semibold">Transformer Load</span>
                                   <span className="font-black text-emerald-900 font-mono text-base">{offer.transformerLoad}%</span>
                                 </div>
@@ -1403,7 +1379,7 @@ export default function App() {
                                   <span className="font-black text-emerald-900 font-mono text-base">{offer.availableHeadroom}%</span>
                                 </div>
                                 <div className="flex justify-between items-center text-slate-800">
-                                  <span className="font-semibold">Trade Request</span>
+                                  <span className="font-semibold">Trade Volume</span>
                                   <span className="font-black text-emerald-900 font-mono text-base">{offer.amount} kWh</span>
                                 </div>
                                 <div className="flex justify-between items-center text-slate-800 pt-1">
@@ -1463,6 +1439,14 @@ export default function App() {
 
                               {/* Details Table with Big Clear Numbers */}
                               <div className="py-4 space-y-3 text-sm font-sans">
+                                <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Prosumer Seller</span>
+                                  <span className="font-black text-rose-950 font-sans text-sm">{offer.sellerName || offer.sellerAlias}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-slate-800">
+                                  <span className="font-semibold">Trade ID</span>
+                                  <span className="font-mono font-bold text-xs bg-rose-100 text-rose-900 px-2 py-0.5 rounded">{offer.id}</span>
+                                </div>
                                 <div className="flex justify-between items-center text-slate-800">
                                   <span className="font-semibold">Transformer Load</span>
                                   <span className="font-black text-rose-800 font-mono text-base">{offer.transformerLoad}%</span>
@@ -1531,6 +1515,14 @@ export default function App() {
 
                             {/* Details Table with Big Clear Numbers */}
                             <div className="py-4 space-y-3 text-sm font-sans">
+                              <div className="flex justify-between items-center text-slate-800">
+                                <span className="font-semibold">Prosumer Seller</span>
+                                <span className="font-black text-indigo-950 font-sans text-sm">{offer.sellerName || offer.sellerAlias}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-slate-800">
+                                <span className="font-semibold">Trade ID</span>
+                                <span className="font-mono font-bold text-xs bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded">{offer.id}</span>
+                              </div>
                               <div className="flex justify-between items-center text-slate-800">
                                 <span className="font-semibold">Permitted Limit</span>
                                 <span className="font-black text-indigo-950 font-mono text-base">{consumerData.permittedLimit} kWh/day</span>
@@ -1610,13 +1602,15 @@ export default function App() {
 
                 {/* Transformer Network Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-3">
-                  {INITIAL_GRID_OFFERS.map((nodeOffer, idx) => {
-                    const isOverloaded = nodeOffer.transformerLoad > 85;
-                    const isConstrained = nodeOffer.transformerLoad > 75 && nodeOffer.transformerLoad <= 85;
+                  {transformers.map((nodeTransformer, idx) => {
+                    const load = nodeTransformer.currentLoadPct ?? nodeTransformer.currentLoad ?? 60;
+                    const headroom = nodeTransformer.headroomPct ?? Math.max(0, 100 - load);
+                    const isOverloaded = load > 85;
+                    const isConstrained = load > 75 && load <= 85;
 
                     return (
                       <div 
-                        key={idx} 
+                        key={nodeTransformer.id || idx} 
                         className={`p-5 rounded-2xl border-2 transition-all ${
                           isOverloaded 
                             ? 'bg-rose-50/70 border-rose-400' 
@@ -1626,7 +1620,7 @@ export default function App() {
                         }`}
                       >
                         <div className="flex items-center justify-between mb-3">
-                          <span className="font-mono text-base font-black text-slate-900">{nodeOffer.node}</span>
+                          <span className="font-mono text-base font-black text-slate-900">{nodeTransformer.id}</span>
                           <span className={`text-xs font-black px-2.5 py-1 rounded ${
                             isOverloaded 
                               ? 'bg-rose-600 text-white' 
@@ -1638,23 +1632,23 @@ export default function App() {
                           </span>
                         </div>
 
-                        <div className="text-xs font-bold text-slate-600 mb-3">{nodeOffer.locality}</div>
+                        <div className="text-xs font-bold text-slate-600 mb-3">{nodeTransformer.name}</div>
 
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between font-bold">
                             <span>Thermal Load:</span>
-                            <span className="font-mono text-base">{nodeOffer.transformerLoad}%</span>
+                            <span className="font-mono text-base">{load}%</span>
                           </div>
                           <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
                             <div 
                               className={`h-full rounded-full ${
                                 isOverloaded ? 'bg-rose-600' : isConstrained ? 'bg-amber-500' : 'bg-emerald-500'
                               }`} 
-                              style={{ width: `${nodeOffer.transformerLoad}%` }}
+                              style={{ width: `${load}%` }}
                             ></div>
                           </div>
                           <div className="flex justify-between text-xs font-semibold text-slate-600 pt-1">
-                            <span>Headroom: {nodeOffer.availableHeadroom}%</span>
+                            <span>Headroom: {headroom}%</span>
                             <span>Limit: Safe &lt; 85%</span>
                           </div>
                         </div>
@@ -1935,9 +1929,15 @@ export default function App() {
                   onChange={(e) => setPreferredNode(e.target.value)}
                   className="w-full bg-white border-2 border-slate-300 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-amber-500 shadow-xs"
                 >
-                  <option value="TX-NORTH-402">North Sector 4 Substation (TX-NORTH-402)</option>
-                  <option value="TX-EAST-205">East Grid Sector (TX-EAST-205)</option>
-                  <option value="TX-SOUTH-309">South Feeder 1 Hub (TX-SOUTH-309)</option>
+                  {transformers.map(t => {
+                    const load = t.currentLoadPct ?? t.currentLoad ?? 60;
+                    const hr = t.headroomPct ?? Math.max(0, 100 - load);
+                    return (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.id}) — {load}% Load ({hr}% Headroom)
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -1958,7 +1958,10 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>Headroom verified (38% safe margin)</span>
+                      <span>
+                        Headroom verified (
+                        {transformers.find(t => t.id === preferredNode)?.headroomPct ?? 38}% safe margin)
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2055,16 +2058,24 @@ export default function App() {
                 {/* Offer Details Bar */}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-sm space-y-2 font-sans">
                   <div className="flex justify-between text-slate-700">
-                    <span className="font-semibold">Seller Alias:</span>
-                    <span className="font-mono text-slate-900 font-bold">{selectedGridOffer.sellerAlias}</span>
+                    <span className="font-semibold">Trade ID:</span>
+                    <span className="font-mono text-emerald-700 font-black">{selectedGridOffer.id}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700">
+                    <span className="font-semibold">Prosumer Seller:</span>
+                    <span className="font-mono text-slate-900 font-bold">{selectedGridOffer.sellerName || selectedGridOffer.sellerAlias || "Alex"}</span>
                   </div>
                   <div className="flex justify-between text-slate-700">
                     <span className="font-semibold">Trade Volume:</span>
                     <span className="font-mono text-slate-900 font-black text-base">{selectedGridOffer.amount} kWh</span>
                   </div>
                   <div className="flex justify-between text-slate-700">
+                    <span className="font-semibold">Unit Price:</span>
+                    <span className="font-mono text-emerald-700 font-bold">{selectedGridOffer.price}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700">
                     <span className="font-semibold">Substation Area:</span>
-                    <span className="text-slate-900 font-bold">{selectedGridOffer.locality}</span>
+                    <span className="text-slate-900 font-bold">{selectedGridOffer.locality || selectedGridOffer.node}</span>
                   </div>
                 </div>
 
